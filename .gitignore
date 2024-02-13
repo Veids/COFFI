@@ -180,3 +180,5 @@ docs/_build
 # =========================
 
 *.bak
+dist/
+*.egg-info
