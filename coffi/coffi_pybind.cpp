@@ -205,6 +205,8 @@ PYBIND11_MODULE(coffipy, m) {
 
       return py::bytes("");
     })
+    .def("set_data", py::overload_cast<const char*, uint32_t>(&section::set_data))
+    .def("set_data", py::overload_cast<const std::string&>(&section::set_data))
     .def("append_data", py::overload_cast<const char*, uint32_t>(&section::append_data))
     .def("append_data", py::overload_cast<const std::string&>(&section::append_data))
     .def("load", &section::load)
