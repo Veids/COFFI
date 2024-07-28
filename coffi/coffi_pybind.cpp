@@ -261,6 +261,13 @@ PYBIND11_MODULE(coffipy, m) {
     .value("COFFI_ARCHITECTURE_CEVA", coffi_architecture_t::COFFI_ARCHITECTURE_CEVA)
     .export_values();
 
+  py::class_<relocation>(m, "relocation")
+    .def("get_symbol", &relocation::get_symbol)
+    .def("set_symbol", &relocation::set_symbol)
+    .def("load", &relocation::load)
+    .def("save", &relocation::save)
+    .def("get_sizeof", &relocation::get_sizeof);
+
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
 #else
