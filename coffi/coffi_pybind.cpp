@@ -262,6 +262,10 @@ PYBIND11_MODULE(coffipy, m) {
     .export_values();
 
   py::class_<relocation>(m, "relocation")
+    .def_property("virtual_address", &relocation::get_virtual_address, &relocation::set_virtual_address)
+    .def_property_readonly("symbol_table_index", &relocation::get_symbol_table_index)
+    .def_property("type", &relocation::get_type, &relocation::set_type)
+    .def_property("reserved", &relocation::get_reserved, &relocation::set_reserved)
     .def("get_symbol", &relocation::get_symbol)
     .def("set_symbol", &relocation::set_symbol)
     .def("load", &relocation::load)
