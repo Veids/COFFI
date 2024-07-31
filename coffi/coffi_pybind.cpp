@@ -8,7 +8,6 @@
 namespace py = pybind11;
 using namespace COFFI;
 
-PYBIND11_MAKE_OPAQUE(std::vector<section*>);
 PYBIND11_MAKE_OPAQUE(std::vector<directory*>);
 
 PYBIND11_MODULE(coffipy, m) {
@@ -57,28 +56,28 @@ PYBIND11_MODULE(coffipy, m) {
     .def("get_index", &symbol::get_index)
     .def("set_index", &symbol::set_index)
     .def("get_name", &symbol::get_name)
-    .def("get_auxiliary_symbols", static_cast<std::vector<auxiliary_symbol_record>& (symbol::*)()>(&symbol::get_auxiliary_symbols), py::return_value_policy::reference)
+    .def("get_auxiliary_symbols", static_cast<std::vector<auxiliary_symbol_record>& (symbol::*)()>(&symbol::get_auxiliary_symbols), py::return_value_policy::reference_internal)
     .def("load", &symbol::load)
     .def("save", &symbol::save);
 
   py::class_<symbol_provider>(m, "symbol_provider")
-    .def("get_symbol", static_cast<symbol* (symbol_provider::*)(uint32_t)>(&symbol_provider::get_symbol), py::return_value_policy::reference)
-    .def("get_symbol", static_cast<symbol* (symbol_provider::*)(const std::string&)>(&symbol_provider::get_symbol), py::return_value_policy::reference)
-    .def("add_symbol", &symbol_provider::add_symbol, py::return_value_policy::reference);
+    .def("get_symbol", static_cast<symbol* (symbol_provider::*)(uint32_t)>(&symbol_provider::get_symbol), py::return_value_policy::reference_internal)
+    .def("get_symbol", static_cast<symbol* (symbol_provider::*)(const std::string&)>(&symbol_provider::get_symbol), py::return_value_policy::reference_internal)
+    .def("add_symbol", &symbol_provider::add_symbol, py::return_value_policy::reference_internal);
 
   py::class_<coffi_symbols, symbol_provider, string_to_name_provider>(m, "coffi_symbols", py::multiple_inheritance())
-    .def("get_symbols", static_cast<std::vector<symbol>* (coffi_symbols::*)()>(&coffi_symbols::get_symbols), py::return_value_policy::reference);
+    .def("get_symbols", static_cast<std::vector<symbol>* (coffi_symbols::*)()>(&coffi_symbols::get_symbols), py::return_value_policy::reference_internal);
 
   py::class_<architecture_provider>(m, "architecture_provider")
     .def("get_architecture", &architecture_provider::get_architecture)
     .def("get_addressable_unit", &architecture_provider::get_addressable_unit);
 
   py::class_<sections_provider, architecture_provider>(m, "sections_provider", py::multiple_inheritance())
-    .def("get_msdos_header", &sections_provider::get_msdos_header, py::return_value_policy::reference)
-    .def("get_header", &sections_provider::get_header, py::return_value_policy::reference)
-    .def("get_optional_header", &sections_provider::get_optional_header, py::return_value_policy::reference)
-    .def("get_win_header", &sections_provider::get_win_header, py::return_value_policy::reference)
-    .def("get_sections", &sections_provider::get_sections, py::return_value_policy::reference);
+    .def("get_msdos_header", &sections_provider::get_msdos_header, py::return_value_policy::reference_internal)
+    .def("get_header", &sections_provider::get_header, py::return_value_policy::reference_internal)
+    .def("get_optional_header", &sections_provider::get_optional_header, py::return_value_policy::reference_internal)
+    .def("get_win_header", &sections_provider::get_win_header, py::return_value_policy::reference_internal)
+    .def("get_sections", &sections_provider::get_sections, py::return_value_policy::reference_internal);
 
   py::class_<coffi, coffi_strings, coffi_symbols, sections_provider>(m, "coffi", py::multiple_inheritance())
     .def(py::init<>())
@@ -88,13 +87,13 @@ PYBIND11_MODULE(coffipy, m) {
     .def("save", py::overload_cast<std::ostream&>(&coffi::save))
     .def("create", &coffi::create)
     .def("create_optional_header", &coffi::create_optional_header)
-    .def("get_msdos_header", static_cast<dos_header* (coffi::*)()>(&coffi::get_msdos_header), py::return_value_policy::reference)
-    .def("get_header", static_cast<coff_header* (coffi::*)()>(&coffi::get_header), py::return_value_policy::reference)
-    .def("get_optional_header", static_cast<optional_header* (coffi::*)()>(&coffi::get_optional_header), py::return_value_policy::reference)
-    .def("get_win_header", static_cast<win_header* (coffi::*)()>(&coffi::get_win_header), py::return_value_policy::reference)
-    .def("get_sections", static_cast<sections& (coffi::*)()>(&coffi::get_sections), py::return_value_policy::reference)
+    .def("get_msdos_header", static_cast<dos_header* (coffi::*)()>(&coffi::get_msdos_header), py::return_value_policy::reference_internal)
+    .def("get_header", static_cast<coff_header* (coffi::*)()>(&coffi::get_header), py::return_value_policy::reference_internal)
+    .def("get_optional_header", static_cast<optional_header* (coffi::*)()>(&coffi::get_optional_header), py::return_value_policy::reference_internal)
+    .def("get_win_header", static_cast<win_header* (coffi::*)()>(&coffi::get_win_header), py::return_value_policy::reference_internal)
+    .def("get_sections", static_cast<sections& (coffi::*)()>(&coffi::get_sections), py::return_value_policy::reference_internal)
     .def("add_section", &coffi::add_section)
-    .def("get_directories", static_cast<directories& (coffi::*)()>(&coffi::get_directories), py::return_value_policy::reference)
+    .def("get_directories", static_cast<directories& (coffi::*)()>(&coffi::get_directories), py::return_value_policy::reference_internal)
     .def("add_directory", &coffi::add_directory)
     .def("is_PE32_plus", &coffi::is_PE32_plus)
     .def("layout", &coffi::layout);
@@ -181,6 +180,8 @@ PYBIND11_MODULE(coffipy, m) {
     .def("load", &win_header::load)
     .def("save", &win_header::save);
 
+  /* py::bind_vector<std::vector<relocation>>(m, "RelocationVector"); */
+
   py::class_<section>(m, "section")
     .def_property("index", &section::get_index, &section::set_index)
     .def_property("virtual_size", &section::get_virtual_size, &section::set_virtual_size)
@@ -216,13 +217,29 @@ PYBIND11_MODULE(coffipy, m) {
     .def("get_relocations_filesize", &section::get_relocations_filesize)
     .def("save_line_numbers", &section::save_line_numbers)
     .def("get_line_numbers_filesize", &section::get_line_numbers_filesize)
-    .def("get_relocations", &section::get_relocations)
+    .def("get_relocations", &section::get_relocations, py::return_value_policy::reference_internal)
     .def("add_relocation_entry", &section::add_relocation_entry);
 
-  py::bind_vector<std::vector<section*>>(m, "VectorRefSection");
-  py::class_<sections, std::vector<section*>>(m, "sections", py::multiple_inheritance())
+  /* py::bind_vector<std::vector<section*>>(m, "VectorRefSection"); */
+  py::class_<COFFI::sections>(m, "sections")
     .def(py::init<>())
-    .def("clean", &sections::clean);
+    .def("clean", &COFFI::sections::clean)
+    .def("__getitem__", 
+         py::overload_cast<size_t>(&COFFI::sections::operator[], py::const_),
+         py::return_value_policy::reference)
+    .def("__getitem__", 
+         py::overload_cast<const std::string&>(&COFFI::sections::operator[], py::const_),
+         py::return_value_policy::reference)
+    .def("__delitem__", [](COFFI::sections &self, size_t i) {
+        delete self[i];
+        self.erase(self.begin() + i);
+    })
+    .def("__len__", [](const COFFI::sections &self) { 
+        return self.size(); 
+    })
+    .def("append", [](COFFI::sections &self, COFFI::section* sec) {
+        self.push_back(sec);
+    });
 
   py::class_<directory>(m, "directory")
     .def(py::init<uint32_t>())
@@ -263,6 +280,7 @@ PYBIND11_MODULE(coffipy, m) {
 
   py::class_<relocation>(m, "relocation")
     .def_property("virtual_address", &relocation::get_virtual_address, &relocation::set_virtual_address)
+    .def("set_virtual_address", &relocation::set_virtual_address)
     .def_property_readonly("symbol_table_index", &relocation::get_symbol_table_index)
     .def_property("type", &relocation::get_type, &relocation::set_type)
     .def_property("reserved", &relocation::get_reserved, &relocation::set_reserved)
