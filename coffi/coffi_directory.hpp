@@ -53,7 +53,7 @@ class directory
 {
   public:
     //------------------------------------------------------------------------------
-    directory(uint32_t index) : data_{nullptr}, index_{index} {}
+    directory(uint32_t index) : data_{}, index_{index} {}
 
     //------------------------------------------------------------------------------
     //! Discards the copy constructor
@@ -71,7 +71,7 @@ class directory
     uint32_t get_index() const { return index_; }
 
     //------------------------------------------------------------------------------
-    const char* get_data() const { return data_; }
+    const char* get_data() const { return data_.get(); }
 
     //------------------------------------------------------------------------------
     void set_data(const char* data, uint32_t size)
@@ -87,13 +87,13 @@ class directory
             return;
         }
 
-        char* temp_buffer = new char[size];
+        std::unique_ptr<char[]> temp_buffer = std::make_unique<char[]>(size);
         if (!temp_buffer) {
             set_size(0);
             return;
         }
-        std::copy(data, data + size, temp_buffer);
-        data_ = temp_buffer;
+        std::copy(data, data + size, temp_buffer.get());
+        data_ = std::move(temp_buffer);
         set_size(size);
     }
 
@@ -126,13 +126,13 @@ class directory
             return true;
         }
         if ((get_size() > 0) && (get_virtual_address() != 0)) {
-            char* temp_buffer = new char[get_size()];
+            std::unique_ptr<char[]> temp_buffer = std::make_unique<char[]>(get_size());
             stream.seekg(get_virtual_address());
-            stream.read(temp_buffer, get_size());
+            stream.read(temp_buffer.get(), get_size());
             if (stream.gcount() != static_cast<int>(get_size())) {
                 return false;
             }
-            data_ = temp_buffer;
+            data_ = std::move(temp_buffer);
         }
         return true;
     }
@@ -150,7 +150,7 @@ class directory
             return;
         }
         if (data_ && get_size() > 0) {
-            stream.write(data_, get_size());
+            stream.write(data_.get(), get_size());
         }
     }
 
@@ -158,41 +158,28 @@ class directory
     void clean()
     {
         if (data_) {
-            delete[] data_;
-            data_ = nullptr;
+            data_.reset();
         }
     }
 
   private:
-    image_data_directory header{};
-    const char*          data_;
-    uint32_t             index_;
+    image_data_directory          header{};
+    std::unique_ptr<const char[]> data_;
+    uint32_t                      index_;
 };
 
 /*! @brief List of image data directories
-     *
-     * It is implemented as a vector of @ref directory pointers.
-     */
-class directories : public std::vector<directory*>
+ *
+ *  It is implemented as a vector of @ref directory pointers.
+ */
+class directories : public unique_ptr_collection<directory>
 {
   public:
-    //------------------------------------------------------------------------------
-    directories(sections_provider* scn) : scn_{scn} {}
+    explicit directories(sections_provider* scn) : scn_{scn} {}
 
     //! Discards the copy constructor
     directories(const directories&) = delete;
 
-    virtual ~directories() { clean(); }
-
-    void clean()
-    {
-        for (auto d : *this) {
-            delete d;
-        }
-        clear();
-    }
-
-    //------------------------------------------------------------------------------
     bool load(std::istream& stream)
     {
         for (uint32_t i = 0;
@@ -201,42 +188,38 @@ class directories : public std::vector<directory*>
             if (!d->load(stream)) {
                 return false;
             }
-            push_back(d.release());
+            append(std::move(d));
         }
         return true;
     }
 
-    //------------------------------------------------------------------------------
     bool load_data(std::istream& stream)
     {
-        for (auto d : *this) {
-            if (!d->load_data(stream)) {
+        for (auto& d : *this) {
+            if (!d.load_data(stream)) {
                 return false;
             }
         }
         return true;
     }
 
-    //---------------------------------------------------------------------
     void save(std::ostream& stream) const
     {
-        for (auto d : *this) {
-            d->save(stream);
+        for (const auto& d : *this) {
+            d.save(stream);
         }
     }
 
-    //------------------------------------------------------------------------------
     uint32_t get_sizeof() const
     {
-        if (size() > 0) {
-            return narrow_cast<uint32_t>(size() * (*begin())->get_sizeof());
+        if (get_count() > 0) {
+            return narrow_cast<uint32_t>(get_count() * (*begin()).get_sizeof());
         }
+
         return 0;
     }
 
-    //------------------------------------------------------------------------------
   protected:
-    //------------------------------------------------------------------------------
     sections_provider* scn_;
 };
 
