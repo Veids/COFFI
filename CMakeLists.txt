@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 
 # Detect if we are the top level CMakeLists.txt or are we included in some
 # other project
@@ -14,7 +14,7 @@ if(IS_TOP_PROJECT)
     option(COFFI_BUILD_TESTS "Build COFFI tests" OFF)
 
     # Turns this on in order to build tests
-    option(COFFI_BUILD_PYBIND "Build python bindings tests" OFF)
+    option(COFFI_BUILD_NANOBIND "Build python bindings tests" OFF)
 
     # Generate output of compile commands during generation
     set(CMAKE_EXPORT_COMPILE_COMMANDS, ON)
@@ -170,13 +170,29 @@ if(IS_TOP_PROJECT)
         message("Doxygen need to be installed to generate the doxygen documentation")
     endif (DOXYGEN_FOUND)
 
-    if(COFFI_BUILD_PYBIND)
-        find_package(pybind11 CONFIG)
-        find_package(Python COMPONENTS Interpreter Development)
+    if(COFFI_BUILD_NANOBIND)
+        find_package(Python
+            REQUIRED COMPONENTS Interpreter Development.Module
+            OPTIONAL_COMPONENTS Development.SABIModule
+        )
+        find_package(nanobind CONFIG REQUIRED)
 
-        if(pybind11_FOUND AND Python_FOUND)
-            Python_add_library(coffipy coffi/coffi_pybind.cpp)
-            target_link_libraries(coffipy PRIVATE pybind11::headers coffi::coffi)
-        endif()
+        nanobind_add_module (
+            coffipy
+
+            STABLE_ABI
+
+            NB_STATIC
+
+            coffi/coffi_nanobind.cpp
+        )
+        
+        # set_target_properties(coffipy PROPERTIES
+        #     PREFIX ""
+        #     OUTPUT_NAME "_coffipy"
+        # )
+
+        target_link_libraries(coffipy PRIVATE coffi::coffi)
+        install(TARGETS coffipy LIBRARY DESTINATION coffipy)
     endif()
 endif()
